@@ -6,6 +6,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const { body, check } = require("express-validator");
+const expressip = require("express-ip");
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use(compression());
 app.use(helmet());
+app.use(expressip().getIpInfoMiddleware);
 
 const isProduction = process.env.NODE_ENV === "production";
 const origin = {
@@ -24,7 +26,6 @@ var whitelist = ["https://justsomenotes.com", "www.justsomenotes.com"];
 var corsOptions = {
   origin: isProduction
     ? function(origin, callback) {
-        console.log("ello", origin, whitelist);
         if (whitelist.indexOf(origin) !== -1) {
           callback(null, true);
         } else {
@@ -38,7 +39,7 @@ app.use(cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 5 // 5 requests,
+  max: 60 // 5 requests,
 });
 
 app.use(limiter);
@@ -63,12 +64,18 @@ const addVisit = (request, response) => {
       ? request.connection.socket.remoteAddress
       : null);
 
-  const country = "Unknown";
-  const visitorid = ip;
+  const country = !request.ipInfo.error ? request.ipInfo.country : "Unknown";
+
+  const visitorid = require("crypto")
+    .createHash("md5")
+    .update(ip)
+    .digest("hex");
+
+  const timestamp = new Date().toISOString();
 
   pool.query(
-    "INSERT INTO visits (page, country, language, browser, referrer, visitorid) VALUES ($1, $2, $3, $4, $5, $6)",
-    [page, country, language, browser, referrer, visitorid],
+    "INSERT INTO visits (page, country, language, browser, referrer, visitorid, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    [page, country, language, browser, referrer, visitorid, timestamp],
     error => {
       if (error) {
         throw error;
