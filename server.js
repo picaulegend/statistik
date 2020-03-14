@@ -20,7 +20,20 @@ const origin = {
   origin: isProduction ? "https://justsomenotes.com" : "*"
 };
 
-app.use(cors(origin));
+var whitelist = isProduction
+  ? ["https://justsomenotes.com", "www.justsomenotes.com"]
+  : ["*"];
+var corsOptions = {
+  origin: function(origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  }
+};
+
+app.use(cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
