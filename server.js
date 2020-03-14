@@ -92,6 +92,6 @@ app
   .get(getStats)
   .post(addVisit);
 
-app.listen(8002, () => {
-  console.log("Example app listening on port 8002!");
-});
+app.listen(process.env.PORT || 8002, () => {
+    console.log(`Server listening`)
+  })
