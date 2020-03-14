@@ -60,6 +60,9 @@ page:
 
 const addVisit = (request, response) => {
   const { page, country } = request.body;
+  const language = "Test";
+  const browser = "Mozilla";
+  const visitorid = "Lala";
 
   const ip =
     request.headers["x-forwarded-for"] ||
@@ -72,8 +75,8 @@ const addVisit = (request, response) => {
   console.log({ ip });
 
   pool.query(
-    "INSERT INTO visits (page, country) VALUES ($1, $2)",
-    [page, country],
+    "INSERT INTO visits (page, country, language, browser, visitorid ) VALUES ($1, $2)",
+    [page, country, language, browser, visitorid],
     error => {
       if (error) {
         throw error;
@@ -93,5 +96,5 @@ app
   .post(addVisit);
 
 app.listen(process.env.PORT || 8002, () => {
-    console.log(`Server listening`)
-  })
+  console.log(`Server listening`);
+});
