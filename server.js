@@ -20,17 +20,18 @@ const origin = {
   origin: isProduction ? "https://justsomenotes.com" : "*"
 };
 
-var whitelist = isProduction
-  ? ["https://justsomenotes.com", "www.justsomenotes.com"]
-  : ["*"];
+var whitelist = ["https://justsomenotes.com", "www.justsomenotes.com"];
 var corsOptions = {
-  origin: function(origin, callback) {
-    if (whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  }
+  origin: isProduction
+    ? function(origin, callback) {
+        console.log("ello", origin, whitelist);
+        if (whitelist.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      }
+    : "*"
 };
 
 app.use(cors(corsOptions));
@@ -51,18 +52,8 @@ const getStats = (request, response) => {
   });
 };
 
-/*
-language:
-browser:
-page: 
-
-*/
-
 const addVisit = (request, response) => {
-  const { page, country } = request.body;
-  const language = "Test";
-  const browser = "Mozilla";
-  const visitorid = "Lala";
+  const { page, browser, language, referrer } = request.body;
 
   const ip =
     request.headers["x-forwarded-for"] ||
@@ -72,11 +63,12 @@ const addVisit = (request, response) => {
       ? request.connection.socket.remoteAddress
       : null);
 
-  console.log({ ip });
+  const country = "Unknown";
+  const visitorid = ip;
 
   pool.query(
-    "INSERT INTO visits (page, country, language, browser, visitorid) VALUES ($1, $2, $3, $4, $5)",
-    [page, country, language, browser, visitorid],
+    "INSERT INTO visits (page, country, language, browser, referrer, visitorid) VALUES ($1, $2, $3, $4, $5, $6)",
+    [page, country, language, browser, referrer, visitorid],
     error => {
       if (error) {
         throw error;
