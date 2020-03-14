@@ -75,7 +75,7 @@ const addVisit = (request, response) => {
   console.log({ ip });
 
   pool.query(
-    "INSERT INTO visits (page, country, language, browser, visitorid ) VALUES ($1, $2)",
+    "INSERT INTO visits (page, country, language, browser, visitorid) VALUES ($1, $2, $3, $4, $5)",
     [page, country, language, browser, visitorid],
     error => {
       if (error) {
