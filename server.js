@@ -54,7 +54,12 @@ const getStats = (request, response) => {
 };
 
 const addVisit = (request, response) => {
-  const { page, browser, language, referrer } = request.body;
+  const {
+    page = "Unknown",
+    browser = "Unknown",
+    language = "Unknown",
+    referrer = "Unknown"
+  } = request.body;
 
   const ip =
     request.headers["x-forwarded-for"] ||
@@ -66,13 +71,15 @@ const addVisit = (request, response) => {
 
   const country = !request.ipInfo.error ? request.ipInfo.country : "Unknown";
 
-  const visitorid = require("crypto")
-    .createHash("md5")
-    .update(ip)
-    .digest("hex");
+  const visitorid = ip
+    ? require("crypto")
+        .createHash("md5")
+        .update(ip)
+        .digest("hex")
+    : "Unknown";
 
   const timestamp = new Date().toISOString();
-
+  console.log(page, country, language, browser, referrer, visitorid, timestamp);
   pool.query(
     "INSERT INTO visits (page, country, language, browser, referrer, visitorid, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)",
     [page, country, language, browser, referrer, visitorid, timestamp],
