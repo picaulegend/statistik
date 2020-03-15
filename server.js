@@ -58,7 +58,8 @@ const addVisit = (request, response) => {
     page = "Unknown",
     browser = "Unknown",
     language = "Unknown",
-    referrer = "Unknown"
+    referrer = "Unknown",
+    dimensions = "Unknown"
   } = request.body;
 
   const ip =
@@ -79,10 +80,28 @@ const addVisit = (request, response) => {
     : "Unknown";
 
   const timestamp = new Date().toISOString();
-  console.log(page, country, language, browser, referrer, visitorid, timestamp);
+  console.log(
+    page,
+    country,
+    language,
+    browser,
+    dimensions,
+    referrer,
+    visitorid,
+    timestamp
+  );
   pool.query(
-    "INSERT INTO visits (page, country, language, browser, referrer, visitorid, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [page, country, language, browser, referrer, visitorid, timestamp],
+    "INSERT INTO visits (page, country, language, browser, dimensions, referrer, visitorid, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    [
+      page,
+      country,
+      language,
+      browser,
+      dimensions,
+      referrer,
+      visitorid,
+      timestamp
+    ],
     error => {
       if (error) {
         throw error;
