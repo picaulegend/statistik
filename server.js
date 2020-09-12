@@ -63,10 +63,24 @@ function getWeek(current) {
   return week;
 }
 
-const getStats = async (request, response) => {
-  const startDate = new Date(Number(request.params.startDate));
+function formatDate(date) {
+  var d = new Date(date),
+    month = "" + (d.getMonth() + 1),
+    day = "" + d.getDate(),
+    year = d.getFullYear();
 
-  console.log(startDate);
+  if (month.length < 2) month = "0" + month;
+  if (day.length < 2) day = "0" + day;
+
+  return [year, month, day].join("-");
+}
+
+const getStats = async (request, response) => {
+  const date = new Date(Number(request.params.startDate));
+  const week = getWeek(date);
+
+  const startDate = formatDate(week[0]);
+  const endDate = formatDate(week[week.length - 1]);
 
   let totalVisits;
   const totalVisitsQuery = {
@@ -81,8 +95,8 @@ const getStats = async (request, response) => {
   let visitsThisWeek = [];
   let totalVisitsThisWeek;
   const visitsThisWeekQuery = {
-    text:
-      "SELECT Timestamp FROM visits WHERE Timestamp BETWEEN '2020-01-01' AND '2020-10-10'",
+    values: [startDate, endDate],
+    text: "SELECT Timestamp FROM visits WHERE Timestamp BETWEEN $1 AND $2",
   };
 
   let topCountries;
@@ -102,8 +116,6 @@ const getStats = async (request, response) => {
     totalUniqueVisits = tuvResult.rows[0].count;
     totalVisitsThisWeek = vtwResult.rows.length;
 
-    const week = getWeek(startDate);
-
     visitsThisWeek = week.map((date) => {
       const isDate = vtwResult.rows.filter((row) => {
         if (row.timestamp) {
@@ -113,18 +125,7 @@ const getStats = async (request, response) => {
         }
       });
 
-      const dateTimeFormat = new Intl.DateTimeFormat("en", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-      });
-      const [
-        { value: month },
-        { value: day },
-        { value: year },
-      ] = dateTimeFormat.formatToParts(date);
-
-      return { date: `${day}-${month}-${year}`, amount: isDate.length };
+      return { date: formatDate(date), amount: isDate.length };
     });
 
     topCountries = tcResult.rows;
