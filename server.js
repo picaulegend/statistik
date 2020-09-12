@@ -63,17 +63,49 @@ function getWeek(current) {
   return week;
 }
 
-const getStats = (request, response) => {
-  pool.query("SELECT * FROM visits", (error, results) => {
-    if (error) {
-      throw error;
-    }
-    console.log(results.rows);
-    const rows = results.rows;
-    const week = getWeek(new Date());
+const getStats = async (request, response) => {
+  const startDate = new Date(Number(request.params.startDate));
 
-    const visitsThisWeek = week.map((date) => {
-      const isDate = rows.filter((row) => {
+  console.log(startDate);
+
+  let totalVisits;
+  const totalVisitsQuery = {
+    text: "SELECT COUNT(*) FROM visits",
+  };
+
+  let totalUniqueVisits;
+  const totalUniqueVisitsQuery = {
+    text: "SELECT COUNT ( DISTINCT Visitorid ) FROM visits",
+  };
+
+  let visitsThisWeek = [];
+  let totalVisitsThisWeek;
+  const visitsThisWeekQuery = {
+    text:
+      "SELECT Timestamp FROM visits WHERE Timestamp BETWEEN '2020-01-01' AND '2020-10-10'",
+  };
+
+  let topCountries;
+  const topCountriesQuery = {
+    text:
+      "SELECT Country, COUNT( Country ) AS amount FROM visits GROUP BY Country ORDER BY amount DESC LIMIT 3",
+  };
+
+  const client = await pool.connect();
+  try {
+    const tvResult = await client.query(totalVisitsQuery);
+    const tuvResult = await client.query(totalUniqueVisitsQuery);
+    const vtwResult = await client.query(visitsThisWeekQuery);
+    const tcResult = await client.query(topCountriesQuery);
+
+    totalVisits = tvResult.rows[0].count;
+    totalUniqueVisits = tuvResult.rows[0].count;
+    totalVisitsThisWeek = vtwResult.rows.length;
+
+    const week = getWeek(startDate);
+
+    visitsThisWeek = week.map((date) => {
+      const isDate = vtwResult.rows.filter((row) => {
         if (row.timestamp) {
           return sameDay(date, row.timestamp);
         } else {
@@ -81,11 +113,34 @@ const getStats = (request, response) => {
         }
       });
 
-      return { date, amount: isDate.length };
+      const dateTimeFormat = new Intl.DateTimeFormat("en", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+      const [
+        { value: month },
+        { value: day },
+        { value: year },
+      ] = dateTimeFormat.formatToParts(date);
+
+      return { date: `${day}-${month}-${year}`, amount: isDate.length };
     });
 
-    response.status(200).json(visitsThisWeek);
-  });
+    topCountries = tcResult.rows;
+
+    response.status(200).json({
+      totalVisits,
+      totalUniqueVisits,
+      totalVisitsThisWeek,
+      visitsThisWeek,
+      topCountries,
+    });
+  } catch (e) {
+    console.error(e.stack);
+  } finally {
+    client.release();
+  }
 };
 
 const addVisit = (request, response) => {
@@ -140,7 +195,7 @@ app.get("/", (req, res) => {
 
 app.route("/stats").post(addVisit);
 
-app.route("/getStats").get(getStats);
+app.route("/stats/:startDate").get(getStats);
 
 app.listen(process.env.PORT || 8002, () => {
   console.log(`Server listening`);
